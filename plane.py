@@ -2,6 +2,7 @@ from typing import Tuple
 from math import pi, sin, cos, atan, degrees
 import numpy as np
 from scipy import signal
+from wind import WindGen, RWalkWindGen
 
 def clamp(x, lo, hi):
     return max(lo, min(x, hi))
@@ -9,17 +10,6 @@ def clamp(x, lo, hi):
 class CONST:
     g = 9.81
     rho = 1.225
-
-class WindGen:
-    def __init__(self):
-        self.wind_x = 0
-        self.wind_y = 0
-    
-    def getWind(self, t:float):
-        if t<2:
-            return 0, 0
-        return 3, 1
-
 
 class PlaneHW:
     def __init__(self):
@@ -51,7 +41,7 @@ class PlaneHW:
 class PlaneState:
     def __init__(self, state:Tuple[float, float, float, float, float]):
         self.hw = PlaneHW()
-        self.windGen = WindGen()
+        self.windGen = RWalkWindGen()
         wx, wy = self.windGen.getWind(0)
         self.x = state[0]
         self.y = state[1]
@@ -78,7 +68,7 @@ class PlaneState:
         self.pitch += cmd * dt * self.hw.pitchControlRate
         aeroData = self.hw.getAeroData((self.x, self.y, self.vx, self.vy, self.pitch, self.alpha))
         cl, cd = aeroData["cl"], aeroData["cd"]
-        wx, wy = self.windGen.getWind(self.t)
+        wx, wy = self.windGen.getWind(dt)
         # update airspeed given wind
         self.tas_x = self.vx - wx
         self.tas_y = self.vy - wy

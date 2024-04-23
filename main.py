@@ -39,11 +39,14 @@ def drawPlane():
     speed = font.render(f" Vx: {plane.vx:.1f}, Vy: {plane.vy:.2f}, glide: {-plane.vx/plane.vy:.2f}", True, WHITE)
     screen.blit(speed, (10, 10))
 
+    wspeed = font.render(f" Wx: {plane.windGen.getWind(0)[0]:.1f}, Wy: {plane.windGen.getWind(0)[1]:.2f}", True, WHITE)
+    screen.blit(wspeed, (10, 40))
+
     pitch = font.render(f"pitch: {degrees(plane.pitch):.2f}, alpha: {degrees(plane.alpha):.2f}", True, WHITE)
-    screen.blit(pitch, (10, 50))
+    screen.blit(pitch, (10, 70))
 
     pos = font.render(f"x: {plane.x:.0f}, y: {plane.y:.0f}", True, WHITE)
-    screen.blit(pos, (10, 90))
+    screen.blit(pos, (10, 100))
 
     time = font.render(f"t: {plane.t:.2f}", True, WHITE)
     screen.blit(time, (10, 130))
@@ -51,7 +54,7 @@ def drawPlane():
     pygame.draw.circle(screen, WHITE, (150, H-150), 120, width=5)
     pygame.draw.circle(screen, RED, (150, H-150), 5)
 
-    pygame.draw.line(screen, WHITE, (150, H-150), (150+(plane.tas_x-plane.vx)*20, H-150+(plane.tas_y-plane.vy)*20), 2)
+    pygame.draw.line(screen, WHITE, (150, H-150), (150-(plane.tas_x-plane.vx)*20, H-150+(plane.tas_y-plane.vy)*20), 2)
 
 def handleInputs():
     keys = pygame.key.get_pressed()
