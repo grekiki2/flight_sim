@@ -33,13 +33,13 @@ def drawPlane():
     # draw speed
     pygame.draw.line(screen, RED, (W2, H2), (W2+plane.vx*10, H2-plane.vy*10), 1)
 
-    speed = font.render(f"vx: {plane.vx:.2f}, vy: {plane.vy:.2f}", True, WHITE)
+    speed = font.render(f"vx: {plane.vx:.2f}, vy: {plane.vy:.2f}, glide: {-plane.vx/plane.vy:.2f}", True, WHITE)
     screen.blit(speed, (10, 10))
 
     pitch = font.render(f"pitch: {degrees(plane.pitch):.2f}, alpha: {degrees(plane.alpha):.2f}", True, WHITE)
     screen.blit(pitch, (10, 50))
 
-    pos = font.render(f"x: {plane.x:.2f}, y: {plane.y:.2f}", True, WHITE)
+    pos = font.render(f"x: {plane.x:.0f}, y: {plane.y:.0f}", True, WHITE)
     screen.blit(pos, (10, 90))
 
     time = font.render(f"t: {plane.t:.2f}", True, WHITE)
@@ -60,7 +60,13 @@ while True:
     if any(event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q) for event in pygame.event.get()):
         break
 
-    handleInputs()
+    try:
+        handleInputs()
+    except AssertionError:
+        print("Crash!")
+        break
     drawPlane()
     pygame.display.flip()
 
+print("Achieved time:", plane.t)
+print("Distance", plane.x)
