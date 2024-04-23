@@ -1,6 +1,7 @@
 from typing import Tuple
 from math import pi, sin, cos, atan, degrees
 import numpy as np
+from scipy import signal
 
 def clamp(x, lo, hi):
     return max(lo, min(x, hi))
@@ -9,6 +10,17 @@ class CONST:
     g = 9.81
     rho = 1.225
 
+class WindGen:
+    def __init__(self):
+        self.wind_x = 0
+        self.wind_y = 0
+    
+    def getWind(self, t:float):
+        if t<2:
+            return 0, 0
+        return 3, 1
+
+
 class PlaneHW:
     def __init__(self):
         self.pitchControlRate = 0.5
@@ -16,8 +28,8 @@ class PlaneHW:
         self.area = 0.29
         self.characterstic_len = 0.18
         self.AR = 8 # includes efficiency factor
-        self.cl_x = [-20, -15, 0, 15, 20] # degrees as on airfoiltools
-        self.cl_y = [0, -1, 0.4, 1.5, 0]
+        self.cl_x = [-45, -20, -15, 0, 15, 20, 45] # degrees as on airfoiltools
+        self.cl_y = [-0.1, -0.3, -1, 0.4, 1.5, 0.3, 0.1]
 
         self.cd_x = [-20, -15, -10, -5, 0, 5, 10, 15, 20] # degrees as on airfoiltools
         self.cd_y = [0.1, 0.03, 0.01, 0.008, 0.005, 0.008, 0.015, 0.035, 0.1]
@@ -37,12 +49,16 @@ class PlaneHW:
 
 
 class PlaneState:
-    def __init__(self, planeHw:PlaneHW, state:Tuple[float, float, float, float, float]):
-        self.hw = planeHw
+    def __init__(self, state:Tuple[float, float, float, float, float]):
+        self.hw = PlaneHW()
+        self.windGen = WindGen()
+        wx, wy = self.windGen.getWind(0)
         self.x = state[0]
         self.y = state[1]
-        self.vx = state[2]
-        self.vy = state[3]
+        self.vx = state[2] # ground speed
+        self.vy = state[3] # ground speed
+        self.tas_x = self.vx - wx # tas
+        self.tas_y = self.vy - wy # tas
         self.pitch = state[4]
         self.t = 0
 
@@ -51,23 +67,27 @@ class PlaneState:
     def checkReasonable(self):
         assert self.x >= 0
         assert self.y >= 0
-        assert self.vx > 0
         assert -pi/2 < self.pitch < pi/2
 
     @property
     def alpha(self):
-        return self.pitch - atan(self.vy / self.vx)
+        return self.pitch - atan(self.tas_y / self.tas_x)
 
     def update(self, dt:float, cmd:float):
         cmd = clamp(cmd, -1, 1)
         self.pitch += cmd * dt * self.hw.pitchControlRate
         aeroData = self.hw.getAeroData((self.x, self.y, self.vx, self.vy, self.pitch, self.alpha))
         cl, cd = aeroData["cl"], aeroData["cd"]
-        v = (self.vx**2 + self.vy**2)**0.5
-        lift = 0.5 * self.hw.area * cl * v**2 * CONST.rho
-        drag = 0.5 * self.hw.area * cd * v**2 * CONST.rho
+        wx, wy = self.windGen.getWind(self.t)
+        # update airspeed given wind
+        self.tas_x = self.vx - wx
+        self.tas_y = self.vy - wy
 
-        drag_dir = -self.vx-self.vy*1j; drag_dir /= abs(drag_dir)
+        v_air = (self.tas_x**2 + self.tas_y**2)**0.5
+        lift = 0.5 * self.hw.area * cl * v_air**2 * CONST.rho
+        drag = 0.5 * self.hw.area * cd * v_air**2 * CONST.rho
+
+        drag_dir = -self.tas_x-self.tas_y*1j; drag_dir /= abs(drag_dir)
         lift_dir = drag_dir * -1j # rotate 90 degrees right
         lift:complex = lift_dir * lift
         drag:complex = drag_dir * drag
