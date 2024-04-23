@@ -1,5 +1,6 @@
 from typing import Tuple
-from math import pi, sin, cos, atan
+from math import pi, sin, cos, atan, degrees
+import numpy as np
 
 def clamp(x, lo, hi):
     return max(lo, min(x, hi))
@@ -10,15 +11,29 @@ class CONST:
 
 class PlaneHW:
     def __init__(self):
-        self.pitchControlRate = 0.5 # radians per second at full command
-        self.mass = 1.0
-        self.area = 0.5
+        self.pitchControlRate = 0.5
+        self.mass = 1.1
+        self.area = 0.29
+        self.characterstic_len = 0.18
+        self.AR = 8 # includes efficiency factor
+        self.cl_x = [-20, -15, 0, 15, 20] # degrees as on airfoiltools
+        self.cl_y = [0, -1, 0.4, 1.5, 0]
+
+        self.cd_x = [-20, -15, -10, -5, 0, 5, 10, 15, 20] # degrees as on airfoiltools
+        self.cd_y = [0.1, 0.03, 0.01, 0.008, 0.005, 0.008, 0.015, 0.035, 0.1]
 
     def getAeroData(self, state:Tuple[float, float, float, float, float]):
         x, y, vx, vy, pitch, alpha = state
-        cl = clamp(2 * pi * alpha, -1.5, 1.5)
-        cd = 0.02 + 0.1 * pi * abs(alpha)
-        return {"cl":cl, "cd":cd}
+        # re = (vx**2+vy**2)**0.5 * self.characterstic_len / 1.4e-5
+        # print(f"kRe: {re/1000:.0f}")
+        alpha_deg = degrees(alpha)
+        cl = np.interp(alpha_deg, self.cl_x, self.cl_y)
+        cd_p = np.interp(alpha_deg, self.cd_x, self.cd_y)
+        cd_i = + cl**2 / (pi * self.AR)
+        
+        print(f"lift: {cl:.2f}, drag: {cd_p:.3f} + {cd_i:.3f}, LD: {cl/(cd_p+cd_i):.1f}")
+
+        return {"cl":cl, "cd":cd_p+cd_i}
 
 
 class PlaneState:
@@ -51,7 +66,6 @@ class PlaneState:
         v = (self.vx**2 + self.vy**2)**0.5
         lift = 0.5 * self.hw.area * cl * v**2 * CONST.rho
         drag = 0.5 * self.hw.area * cd * v**2 * CONST.rho
-        print(f"lift: {cl:.2f}, drag: {cd:.3f}, L/D: {lift/drag:.2f}")
 
         drag_dir = -self.vx-self.vy*1j; drag_dir /= abs(drag_dir)
         lift_dir = drag_dir * -1j # rotate 90 degrees right

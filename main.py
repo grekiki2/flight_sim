@@ -20,7 +20,8 @@ YELLOW = (255, 255, 0)
 RED = (255, 0, 0)
 font = pygame.font.Font(None, 36)
 
-plane = PlaneState(PlaneHW(), (0, 100, 10, 0, 0))
+H_0 = 1000
+plane = PlaneState(PlaneHW(), (0, H_0, 10, 0, 0))
 def drawPlane():
     # rectangle for now
     W2 = W//2
@@ -28,6 +29,8 @@ def drawPlane():
     offset = 200
     pitch = plane.pitch
     offset *= cmath.exp(1j * pitch)
+    
+    # draw plane
     pygame.draw.line(screen, BLUE, (W2-+offset.real/2, H2+offset.imag/2), (W2+offset.real/2, H2-offset.imag/2), 10)
 
     # draw speed
@@ -70,3 +73,6 @@ while True:
 
 print("Achieved time:", plane.t)
 print("Distance", plane.x)
+dh = H_0 - plane.y # height lost
+
+print(f"Glide ratio: {plane.x/dh:.2f}")
